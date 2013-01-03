@@ -1,0 +1,141 @@
+#!/bin/sh
+#
+# Script to manage tomcat
+#
+
+name=$(echo "$0" | awk -F / "{print \$NF}")
+
+if [ $# -eq 0 ] ; then
+	echo "$name : no arguments found"
+	echo "use '$name help' for usage info"
+	exit 1
+fi
+
+if [ -z "$CATALINA_OUT" ] ; then
+    export CATALINA_OUT="$CATALINA_HOME/logs/catalina.out"
+fi
+
+if [ "$1" = "run" -o "$1" = "r" ] ; then
+    cd $CATALINA_HOME
+    exec $CATALINA_HOME/bin/catalina.sh run > "$CATALINA_OUT" 2>&1
+    
+elif [ "$1" = "debug" -o "$1" = "d" ] ; then
+    if [ -f "$CATALINA_OUT" ] ; then
+	rm $CATALINA_OUT
+	touch $CATALINA_OUT
+    fi
+    cd $CATALINA_HOME
+    exec $CATALINA_HOME/bin/catalina.sh jpda start
+
+elif [ "$1" = "stop" -o "$1" = "s" ] ; then
+    shift
+    cd $CATALINA_HOME
+    $CATALINA_HOME/bin/catalina.sh $@ stop
+
+elif [ "$1" = "less" -o "$1" = "l" ] ; then
+    if [ -f "$CATALINA_OUT" ] ; then
+	shift
+	n=$1
+	if [ "$n" = "" ] ; then
+	    n=500
+	fi
+	exec inotail -f -n 500 $CATALINA_OUT | less $@
+    else
+	echo "tomcat is not started or output is redirected to other file."
+    fi
+
+elif [ "$1" = "tail" -o "$1" = "t" ] ; then
+    shift
+    n=$1
+    if [ "$n" = "" ] ; then
+	n=500
+    fi
+    if [ -f "$CATALINA_OUT" ] ; then
+	    exec inotail -f -n $n $CATALINA_OUT
+    else
+	echo "tomcat is not started or output is redirected to other file."
+    fi
+
+elif [ "$1" = "tail-all" -o "$1" = "ta" ] ; then
+    shift
+    if [ -f "$CATALINA_OUT" ] ; then
+	exec inotail -f -n +1 $CATALINA_OUT
+    else
+	echo "tomcat is not started or output is redirected to other file."
+    fi
+
+elif [ "$1" = "filter" -o "$1" = "f" ] ; then
+    shift
+    exp=$1
+    if [ "$exp" = "" ] ; then
+	exp="."
+    else
+	shift
+    fi
+    if [ -f "$CATALINA_OUT" ] ; then
+	exec inotail -f -n 1 $CATALINA_OUT | grep --color -E "$exp" $@
+    else
+	echo "tomcat is not started or output is redirected to other file."
+    fi
+
+elif [ "$1" = "filter-all" -o "$1" = "fa" ] ; then
+    shift
+    exp=$1
+    if [ "$exp" = "" ] ; then
+	exp="."
+    else
+	shift
+    fi
+    if [ -f "$CATALINA_OUT" ] ; then
+	exec inotail -f -n +1 $CATALINA_OUT | grep --color -E "$exp" $@
+    else
+	echo "tomcat is not started or output is redirected to other file."
+    fi
+
+elif [ "$1" = "highlight" -o "$1" = "h" ] ; then
+    shift
+    exp=$1
+    if [ -f "$CATALINA_OUT" ] ; then
+	if [ "$exp" = "" ] ; then
+	    exec inotail -f -n +1 $@ $CATALINA_OUT
+	else
+	    exec inotail -f -n +1 $CATALINA_OUT | ack-grep --passthru $@
+	fi
+    else
+	echo "tomcat is not started or output is redirected to other file."
+    fi
+
+elif [ "$1" = "kill" -o "$1" = "k" ] ; then
+    shift
+    gexp="$CATALINA_HOME.*org.apache.catalina.startup.Bootstrap start"
+    if [ "$1" = "-grep" ] ; then
+	if [ "$2" != "" ] ; then
+	    gexp="$2.*$gexp.*"
+	    shift
+	fi
+	shift
+    fi
+    exec pkill $@ -f "$gexp"
+
+elif [ "$1" = "ps" ] ; then
+    shift
+    gexp="$CATALINA_HOME.*org.apache.catalina.startup.Bootstrap start"
+    if [ "$1" = "-grep" ] ; then
+	if [ "$2" != "" ] ; then
+	    gexp="$2.*$gexp"
+	    shift
+	fi
+	shift
+    fi
+    exec pgrep $@ -f "$gexp"
+
+elif [ "$1" = "nohup" -o "$1" = "nh"  ] ; then
+    shift
+    exec nohup $0 run $@ > /dev/null 2>&1
+
+else
+    echo "Usage: $name [version] option"
+    echo "options"
+    echo "use '$name help' for usage info"
+    exit 1
+fi
