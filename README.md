@@ -13,7 +13,7 @@ LICENSE
 =======
 
 The scripts are licensed under LGPL version 3. Please see LICENSE for more information.
-
+.
 see [inotail home](http://distanz.ch/inotail/ "GPL v2") and [ack](http://betterthangrep.com/ "Artistic License") for licenses of dependencies.
 
 Tomcat
