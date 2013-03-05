@@ -20,7 +20,7 @@ Tomcat
 ======
 
 This is a script to manage your tomcat like you have never done before.
-for usage you can always run `tomcat help` and see the usage
+for usage you can always run `tomcat help` and see the usage.
 
 Features
 --------
